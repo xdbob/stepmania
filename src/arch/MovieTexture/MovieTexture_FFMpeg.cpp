@@ -265,16 +265,22 @@ int MovieDecoder_FFMpeg::DecodePacket( float fTargetTime )
 		bool bSkipThisFrame = 
 			fTargetTime != -1 &&
 			GetTimestamp() + GetFrameDuration() < fTargetTime &&
-			(m_pStream->codec->frame_number % 2) == 0;
+			(m_pStreamCodec->frame_number % 2) == 0;
 
 		int iGotFrame;
 		/* Hack: we need to send size = 0 to flush frames at the end, but we have
 		 * to give it a buffer to read from since it tries to read anyway. */
 		m_Packet.data = m_Packet.size ? m_Packet.data : NULL;
+#if LIBAVCODEC_VERSION_MAJOR < 58
 		int len = avcodec::avcodec_decode_video2(
-				m_pStream->codec, 
+				m_pStreamCodec->codec,
 				m_Frame, &iGotFrame,
 				&m_Packet );
+#else
+		int len = m_Packet.size;
+		avcodec::avcodec_send_packet(m_pStreamCodec, &m_Packet);
+		iGotFrame = !avcodec::avcodec_receive_frame(m_pStreamCodec, m_Frame);
+#endif
 
 		if( len < 0 )
 		{
@@ -333,7 +339,11 @@ int MovieDecoder_FFMpeg::DecodePacket( float fTargetTime )
 
 void MovieDecoder_FFMpeg::GetFrame( RageSurface *pSurface )
 {
+#if LIBAVCODEC_VERSION_MAJOR < 58
 	avcodec::AVPicture pict;
+#else
+	avcodec::AVFrame pict;
+#endif
 	pict.data[0] = (unsigned char *) pSurface->pixels;
 	pict.linesize[0] = pSurface->pitch;
 
@@ -344,12 +354,12 @@ void MovieDecoder_FFMpeg::GetFrame( RageSurface *pSurface )
 	if( m_swsctx == NULL )
 	{
 		m_swsctx = avcodec::sws_getCachedContext( m_swsctx,
-				GetWidth(), GetHeight(), m_pStream->codec->pix_fmt,
+				GetWidth(), GetHeight(), m_pStreamCodec->pix_fmt,
 				GetWidth(), GetHeight(), m_AVTexfmt,
 				sws_flags, NULL, NULL, NULL );
 		if( m_swsctx == NULL )
 		{
-			LOG->Warn("Cannot initialize sws conversion context for (%d,%d) %d->%d", GetWidth(), GetHeight(), m_pStream->codec->pix_fmt, m_AVTexfmt);
+			LOG->Warn("Cannot initialize sws conversion context for (%d,%d) %d->%d", GetWidth(), GetHeight(), m_pStreamCodec->pix_fmt, m_AVTexfmt);
 			return;
 		}
 	}
@@ -384,8 +394,10 @@ void MovieTexture_FFMpeg::RegisterProtocols()
 		return;
 	Done = true;
 
+#if LIBAVCODEC_VERSION_MAJOR < 58
 	avcodec::avcodec_register_all();
 	avcodec::av_register_all();
+#endif
 }
 
 static int AVIORageFile_ReadPacket( void *opaque, uint8_t *buf, int buf_size )
@@ -444,16 +456,23 @@ RString MovieDecoder_FFMpeg::Open( RString sFile )
 		m_fctx->streams[stream_idx] == NULL )
 		return "Couldn't find any video streams";
 	m_pStream = m_fctx->streams[stream_idx];
+#if LIBAVCODEC_VERSION_MAJOR >= 58
+	m_pStreamCodec = avcodec::avcodec_alloc_context3(NULL);
+	if (avcodec::avcodec_parameters_to_context(m_pStreamCodec, m_pStream->codecpar) < 0)
+		return ssprintf("Could not get context from parameters");
+#else
+	m_pStreamCodec = m_pStream->codec;
+#endif
 
-	if( m_pStream->codec->codec_id == avcodec::CODEC_ID_NONE )
-		return ssprintf( "Unsupported codec %08x", m_pStream->codec->codec_tag );
+	if( m_pStreamCodec->codec_id == avcodec::AV_CODEC_ID_NONE )
+		return ssprintf( "Unsupported codec %08x", m_pStreamCodec->codec_tag );
 
 	RString sError = OpenCodec();
 	if( !sError.empty() )
 		return ssprintf( "AVCodec (%s): %s", sFile.c_str(), sError.c_str() );
 
-	LOG->Trace( "Bitrate: %i", m_pStream->codec->bit_rate );
-	LOG->Trace( "Codec pixel format: %s", avcodec::av_get_pix_fmt_name(m_pStream->codec->pix_fmt) );
+	LOG->Trace( "Bitrate: %i", m_pStreamCodec->bit_rate );
+	LOG->Trace( "Codec pixel format: %s", avcodec::av_get_pix_fmt_name(m_pStreamCodec->pix_fmt) );
 
 	return RString();
 }
@@ -463,35 +482,47 @@ RString MovieDecoder_FFMpeg::OpenCodec()
 	Init();
 
 	ASSERT( m_pStream != NULL );
-	if( m_pStream->codec->codec )
-		avcodec::avcodec_close( m_pStream->codec );
+	if( m_pStreamCodec->codec )
+		avcodec::avcodec_close( m_pStreamCodec );
 
-	avcodec::AVCodec *pCodec = avcodec::avcodec_find_decoder( m_pStream->codec->codec_id );
+	const avcodec::AVCodec *pCodec = avcodec::avcodec_find_decoder( m_pStreamCodec->codec_id );
 	if( pCodec == NULL )
-		return ssprintf( "Couldn't find decoder %i", m_pStream->codec->codec_id );
+		return ssprintf( "Couldn't find decoder %i", m_pStreamCodec->codec_id );
 
-	m_pStream->codec->workaround_bugs   = 1;
-	m_pStream->codec->idct_algo         = FF_IDCT_AUTO;
-	m_pStream->codec->error_concealment = 3;
+	m_pStreamCodec->workaround_bugs   = 1;
+	m_pStreamCodec->idct_algo         = FF_IDCT_AUTO;
+	m_pStreamCodec->error_concealment = 3;
 
-	if( pCodec->capabilities & CODEC_CAP_DR1 )
-		m_pStream->codec->flags |= CODEC_FLAG_EMU_EDGE;
+#if LIBAVCODEC_VERSION_MAJOR < 58
+	if( pCodec->capabilities & AV_CODEC_CAP_DR1 )
+		m_pStreamCodec->flags |= CODEC_FLAG_EMU_EDGE;
+#endif
 
 	LOG->Trace("Opening codec %s", pCodec->name );
 
-	int ret = avcodec::avcodec_open2( m_pStream->codec, pCodec, NULL );
+	int ret = avcodec::avcodec_open2( m_pStreamCodec, pCodec, NULL );
 	if( ret < 0 )
 		return RString( averr_ssprintf(ret, "Couldn't open codec \"%s\"", pCodec->name) );
-	ASSERT( m_pStream->codec->codec != NULL );
+	ASSERT( m_pStreamCodec->codec != NULL );
 
 	return RString();
 }
 
 void MovieDecoder_FFMpeg::Close()
 {
-	if( m_pStream && m_pStream->codec->codec )
+	if( m_pStream )
 	{
-		avcodec::avcodec_close( m_pStream->codec );
+		if( m_pStreamCodec )
+		{
+			if( m_pStreamCodec->codec )
+			{
+				avcodec::avcodec_close( m_pStreamCodec );
+			}
+#if LIBAVCODEC_VERSION_MAJOR >= 58
+			avcodec_free_context(&m_pStreamCodec);
+			ASSERT (m_pStreamCodec == NULL);
+#endif
+		}
 		m_pStream = NULL;
 	}
 

@@ -10,11 +10,28 @@ namespace avcodec
 {
 	extern "C"
 	{
+		#include <libavcodec/avcodec.h>
 		#include <libavformat/avformat.h>
 		#include <libswscale/swscale.h>
 		#include <libavutil/pixdesc.h>
 	}
 };
+
+/* Hack compatibility with FFMPEG >= 4.0 */
+# if LIBAVCODEC_VERSION_MAJOR >= 58
+#  define av_free_packet	av_packet_unref
+#  define PixelFormat		AVPixelFormat
+#  define PIX_FMT_YUYV422	AV_PIX_FMT_YUYV422
+#  define PIX_FMT_BGRA		AV_PIX_FMT_BGRA
+#  define PIX_FMT_ARGB		AV_PIX_FMT_ARGB
+#  define PIX_FMT_ABGR		AV_PIX_FMT_ABGR
+#  define PIX_FMT_RGBA		AV_PIX_FMT_RGBA
+#  define PIX_FMT_RGB24		AV_PIX_FMT_RGB24
+#  define PIX_FMT_BGR24		AV_PIX_FMT_BGR24
+#  define PIX_FMT_RGB555	AV_PIX_FMT_RGB555
+#  define PIX_FMT_NB		AV_PIX_FMT_NB
+#  define CODEC_ID_NONE		AV_CODEC_ID_NONE
+# endif
 
 #define STEPMANIA_FFMPEG_BUFFER_SIZE 4096
 static const int sws_flags = SWS_BICUBIC; // XXX: Reasonable default?
@@ -48,8 +65,8 @@ public:
 	void GetFrame( RageSurface *pOut );
 	int DecodeFrame( float fTargetTime );
 
-	int GetWidth() const { return m_pStream->codec->width; }
-	int GetHeight() const { return m_pStream->codec->height; }
+	int GetWidth() const { return m_pStreamCodec->width; }
+	int GetHeight() const { return m_pStreamCodec->height; }
 
 	RageSurface *CreateCompatibleSurface( int iTextureWidth, int iTextureHeight, bool bPreferHighColor, MovieDecoderPixelFormatYCbCr &fmtout );
 
@@ -66,6 +83,7 @@ private:
 	avcodec::AVFrame *m_Frame;
 	avcodec::PixelFormat m_AVTexfmt; /* PixelFormat of output surface */
 	avcodec::SwsContext *m_swsctx;
+	avcodec::AVCodecContext *m_pStreamCodec;
 
 	avcodec::AVFormatContext *m_fctx;
 	float m_fTimestamp;
