@@ -524,9 +524,6 @@ list(APPEND SM_INCLUDE_DIRS
   "${SM_SRC_DIR}/generated"
 )
 if(NOT APPLE)
-  list(APPEND SM_INCLUDE_DIRS
-    "${SM_EXTERN_DIR}/jsoncpp/include"
-  )
   if(MSVC)
   else()
     list(APPEND SM_INCLUDE_DIRS

@@ -7,6 +7,46 @@ class RageFileBasic;
 
 namespace JsonUtil
 {
+
+	namespace internal {
+		static inline bool TryGet(const Json::Value &v, std::string &out) {
+			if(!v.isString())
+				return false;
+			out=v.asString();
+			return true;
+		}
+		static inline bool TryGet(const Json::Value &v, int &out) {
+			if(!v.isInt())
+				return false;
+			out=v.asInt();
+			return true;
+		}
+		static inline bool TryGet(const Json::Value &v, unsigned int &out) {
+			if(!v.isUInt())
+				return false;
+			out=v.asUInt();
+			return true;
+		}
+		static inline bool TryGet(const Json::Value &v, double &out) {
+			if(!v.isDouble())
+				return false;
+			out=v.asDouble();
+			return true;
+		}
+		static inline bool TryGet(const Json::Value &v, float &out) {
+			if(!v.isDouble())
+				return false;
+			out=(float)v.asDouble();
+			return true;
+		}
+		static inline bool TryGet(const Json::Value &v, bool &out) {
+			if(!v.isBool())
+				return false;
+			out=v.asBool();
+			return true;
+		}
+	}
+
 	bool LoadFromString( Json::Value &root, RString sData, RString &sErrorOut );
 	bool LoadFromStringShowErrors(Json::Value &root, const RString sData);
 	bool LoadFromFileShowErrors(Json::Value &root, const RString &sFile);
@@ -202,7 +242,7 @@ namespace JsonUtil
 		for( unsigned i=0; i<root.size(); i++ )
 		{
 			T t;
-			if( root[i].TryGet( t ) )
+			if( internal::TryGet(root[i],  t ) )
 				v.push_back( t );
 		}
 	}
@@ -215,7 +255,7 @@ namespace JsonUtil
 		for( unsigned i=0; i<root.size(); i++ )
 		{
 			T t;
-			if( root[i].TryGet( t ) )
+			if( internal::TryGet(root[i],  t ) )
 				s.insert( t );
 		}
 	}
@@ -227,7 +267,7 @@ namespace JsonUtil
 		for( unsigned i=0; i<root.size(); i++ )
 		{
 			T t;
-			if( root[i].TryGet( t ) )
+			if( internal::TryGet(root[i],  t ) )
 				v.push_back( t );
 		}
 	}
@@ -236,14 +276,14 @@ namespace JsonUtil
 	static void DeserializeValueToValueMap(M &m, const Json::Value &root)
 	{
 		for( Json::Value::const_iterator iter = root.begin(); iter != root.end(); iter++ )
-			(*iter).TryGet( m[ iter.memberName() ] );
+			internal::TryGet(*iter, m[ iter.memberName() ] );
 	}
 
 	template <typename M, typename E, typename F>
 	static void DeserializeStringToValueMap(M &m, F fnToValue(E e), const Json::Value &root)
 	{
 		for( Json::Value::const_iterator iter = root.begin(); iter != root.end(); iter++ )
-			(*iter).TryGet( m[ fnToValue(iter.memberName()) ] );
+			internal::TryGet(*iter, m[ fnToValue(iter.memberName()) ] );
 	}
 
 	template <typename M, typename E, typename F>
@@ -282,7 +322,7 @@ namespace JsonUtil
 			if( !k.Deserialize( root2[sKeyName] ) )
 				continue;
 			V v;
-			if( !root2[sValueName].TryGet(v) )
+			if( !internal::TryGet(root2[sValueName], v) )
 				continue;
 			m[k] = v;
 		}
