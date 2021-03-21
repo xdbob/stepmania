@@ -330,7 +330,7 @@ list(APPEND SMDATA_LINK_LIB
   "zlib"
   "jsoncpp"
   "png"
-  "glew"
+  "GLEW"
   "jpeg"
 )
 include(../extern/CMakeProject-mmmagic.cmake)
@@ -525,27 +525,10 @@ list(APPEND SM_INCLUDE_DIRS
 )
 if(NOT APPLE)
   list(APPEND SM_INCLUDE_DIRS
-    "${SM_EXTERN_DIR}/glew-1.5.8/include"
     "${SM_EXTERN_DIR}/jsoncpp/include"
-    "${SM_EXTERN_DIR}/zlib"
   )
   if(MSVC)
-    if (WITH_OGG)
-      list(APPEND SM_INCLUDE_DIRS
-        "${SM_EXTERN_DIR}/newogg/include"
-        "${SM_EXTERN_DIR}/newvorbis/lib"
-        "${SM_EXTERN_DIR}/newvorbis/include"
-      )
-    endif()
-    list(APPEND SM_INCLUDE_DIRS
-      "${SM_EXTERN_DIR}/ffmpeg/include"
-    )
   else()
-    if(WITH_OGG)
-      list(APPEND SM_INCLUDE_DIRS
-        "${SM_EXTERN_DIR}/vorbis"
-      )
-    endif()
     list(APPEND SM_INCLUDE_DIRS
       "${JPEG_INCLUDE_DIR}"
     )
@@ -574,12 +557,6 @@ if(NOT APPLE)
     endif()
   endif()
 else()
-  if(WITH_OGG)
-    list(APPEND SM_INCLUDE_DIRS
-      "${SM_EXTERN_DIR}/newogg/include"
-      "${SM_EXTERN_DIR}/newvorbis/include"
-    )
-  endif()
   list(APPEND SM_INCLUDE_DIRS
     "archutils/Unix"
   )
@@ -590,16 +567,6 @@ else()
       "${SM_FFMPEG_ROOT}"
     )
   endif()
-endif()
-
-if(WIN32)
-  list(APPEND SM_INCLUDE_DIRS
-    ${DIRECTX_INCLUDE_DIR}
-  )
-else()
-  list(APPEND SM_INCLUDE_DIRS
-    "${SM_EXTERN_DIR}/libpng/include"
-  )
 endif()
 
 target_include_directories("${SM_EXE_NAME}" PUBLIC ${SM_INCLUDE_DIRS})
