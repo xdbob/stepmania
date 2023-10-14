@@ -368,7 +368,7 @@ RString ArchHooks_Unix::GetClipboard()
 #include <sys/stat.h>
 
 static LocalizedString COULDNT_FIND_SONGS( "ArchHooks_Unix", "Couldn't find 'Songs'" );
-void ArchHooks::MountInitialFilesystems( const RString &sDirOfExecutable )
+void ArchHooks::MountInitialFilesystems( const RString &sDirOfData )
 {
 #if defined(UNIX)
 	/* Mount the root filesystem, so we can read files in /proc, /etc, and so on.
@@ -382,10 +382,10 @@ void ArchHooks::MountInitialFilesystems( const RString &sDirOfExecutable )
 
 	RString Root;
 	struct stat st;
-	if( !stat(sDirOfExecutable + "/Packages", &st) && st.st_mode&S_IFDIR )
-		Root = sDirOfExecutable;
-	else if( !stat(sDirOfExecutable + "/Songs", &st) && st.st_mode&S_IFDIR )
-		Root = sDirOfExecutable;
+	if( !stat(sDirOfData + "/Packages", &st) && st.st_mode&S_IFDIR )
+		Root = sDirOfData;
+	else if( !stat(sDirOfData + "/Songs", &st) && st.st_mode&S_IFDIR )
+		Root = sDirOfData;
 	else if( !stat(RageFileManagerUtil::sInitialWorkingDirectory + "/Songs", &st) && st.st_mode&S_IFDIR )
 		Root = RageFileManagerUtil::sInitialWorkingDirectory;
 	else
@@ -394,7 +394,7 @@ void ArchHooks::MountInitialFilesystems( const RString &sDirOfExecutable )
 	FILEMAN->Mount( "dir", Root, "/" );
 }
 
-void ArchHooks::MountUserFilesystems( const RString &sDirOfExecutable )
+void ArchHooks::MountUserFilesystems( const RString &sDirOfData )
 {
 	/* Path to write general mutable user data when not Portable
 	 * Lowercase the PRODUCT_ID; dotfiles and directories are almost always lowercase.

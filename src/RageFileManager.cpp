@@ -1,3 +1,4 @@
+#include "config.h"
 #include "global.h"
 #include "RageFileManager.h"
 #include "RageFileDriver.h"
@@ -25,6 +26,8 @@ static RageEvent *g_Mutex;
 
 RString RageFileManagerUtil::sInitialWorkingDirectory;
 RString RageFileManagerUtil::sDirOfExecutable;
+RString RageFileManagerUtil::sDirOfData;
+RString RageFileManagerUtil::sDirOfLibraries;
 
 struct LoadedDriver
 {
@@ -279,6 +282,8 @@ static void ChangeToDirOfExecutable( const RString &argv0 )
 {
 	RageFileManagerUtil::sInitialWorkingDirectory = GetCwd();
 	RageFileManagerUtil::sDirOfExecutable = GetDirOfExecutable( argv0 );
+	RageFileManagerUtil::sDirOfData = SM_INSTALL_DESTINATION;
+	RageFileManagerUtil::sDirOfLibraries = SM_LIBDIR_DESTINATION;
 
 	/* Set the CWD.  Any effects of this is platform-specific; most files are read and
 	 * written through RageFile.  See also RageFileManager::RageFileManager. */
@@ -328,12 +333,12 @@ RageFileManager::RageFileManager( const RString &argv0 )
 
 void RageFileManager::MountInitialFilesystems()
 {
-	HOOKS->MountInitialFilesystems( RageFileManagerUtil::sDirOfExecutable );
+	HOOKS->MountInitialFilesystems( RageFileManagerUtil::sDirOfData );
 }
 
 void RageFileManager::MountUserFilesystems()
 {
-	HOOKS->MountUserFilesystems( RageFileManagerUtil::sDirOfExecutable );
+	HOOKS->MountUserFilesystems( RageFileManagerUtil::sDirOfData );
 }
 
 RageFileManager::~RageFileManager()

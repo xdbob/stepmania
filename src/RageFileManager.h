@@ -5,6 +5,8 @@ namespace RageFileManagerUtil
 {
 	extern RString sInitialWorkingDirectory;
 	extern RString sDirOfExecutable;
+	extern RString sDirOfData;
+	extern RString sDirOfLibraries;
 }
 
 class RageFileDriver;

@@ -12,7 +12,7 @@ public:
 	void SetTime( tm newtime );
 	int64_t GetMicrosecondsSinceStart();
 
-	void MountInitialFilesystems( const RString &sDirOfExecutable );
+	void MountInitialFilesystems( const RString &sDirOfData );
 	float GetDisplayAspectRatio() { return 4.0f/3; }
 
 	bool GoToURL( RString sUrl );

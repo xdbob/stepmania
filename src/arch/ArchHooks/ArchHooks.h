@@ -89,12 +89,12 @@ public:
 	/* 
 	 * Add file search paths, higher priority first. 
 	 */
-	static void MountInitialFilesystems( const RString &sDirOfExecutable );
+	static void MountInitialFilesystems( const RString &sDirOfData );
 
 	/* 
 	 * Add file search paths for user-writable directories. 
 	 */
-	static void MountUserFilesystems( const RString &sDirOfExecutable );
+	static void MountUserFilesystems( const RString &sDirOfData );
 
 	/*
 	 * Platform-specific code calls this to indicate focus changes.

@@ -15,6 +15,9 @@ endif()
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Main project is below.
+if(UNIX OR LINUX)
+include(GNUInstallDirs)
+endif()
 
 include(CMakeData-arch.cmake)
 include(CMakeData-rage.cmake)
@@ -514,6 +517,7 @@ else() # Unix / Linux
 endif()
 
 target_link_libraries("${SM_EXE_NAME}" ${SMDATA_LINK_LIB})
+target_include_directories("${SM_EXE_NAME}" PRIVATE ${CMAKE_BINARY_DIR})
 
 list(APPEND SM_INCLUDE_DIRS
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -600,11 +604,25 @@ endif()
 
 target_include_directories("${SM_EXE_NAME}" PUBLIC ${SM_INCLUDE_DIRS})
 
-if(WIN32)
-  set(SM_INSTALL_DESTINATION ".")
-else()
-  set(SM_INSTALL_DESTINATION "stepmania-5.0")
+if (NOT DEFINED SM_INSTALL_DESTINATION)
+  if(WIN32)
+    set(SM_INSTALL_DESTINATION "." CACHE PATH "Installation directory")
+  elseif(APPLE)
+    set(SM_INSTALL_DESTINATION "stepmania-5.0" CACHE PATH "Installation directory")
+  else()
+    set(SM_INSTALL_DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/stepmania" CACHE PATH "Installation directory")
+  endif()
 endif()
+
+if (NOT DEFINED SM_LIBDIR_DESTINATION)
+  if(UNIX OR LINUX)
+    set(SM_LIBDIR_DESTINATION "${CMAKE_INSTALL_LIBDIR}/stepmania" CACHE PATH "Libraries directory")
+  else()
+    set(SM_LIBDIR_DESTINATION "${SM_INSTALL_DESTINATION}" CACHE PATH "Libraries directory")
+  endif()
+endif()
+
+configure_file(config.in.h "${CMAKE_BINARY_DIR}/config.h" @ONLY)
 
 if(NOT APPLE)
   if(WIN32)
@@ -626,10 +644,10 @@ if(NOT APPLE)
     #   install(FILES "${SM_WINDOW_DLL}" DESTINATION "${SM_INSTALL_DESTINATION}")
     # endforeach()
   else()
-    install(TARGETS "${SM_EXE_NAME}" DESTINATION "${SM_INSTALL_DESTINATION}")
+    install(TARGETS "${SM_EXE_NAME}" DESTINATION "${CMAKE_INSTALL_BINDIR}")
   endif()
   if (UNIX OR LINUX)
-    install(FILES "${SM_ROOT_DIR}/GtkModule.so" LIBRARY DESTINATION "${SM_INSTALL_DESTINATION}" OPTIONAL)
+    install(FILES "${SM_ROOT_DIR}/GtkModule.so" LIBRARY DESTINATION "${SM_LIBDIR_DESTINATION}" OPTIONAL)
   endif()
   install(DIRECTORY "${SM_ROOT_DIR}/Announcers" DESTINATION "${SM_INSTALL_DESTINATION}")
   install(DIRECTORY "${SM_ROOT_DIR}/BGAnimations" DESTINATION "${SM_INSTALL_DESTINATION}")

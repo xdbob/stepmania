@@ -307,26 +307,26 @@ static void PathForFolderType( char dir[PATH_MAX], OSType folderType )
 		FAIL_M( "FSRefMakePath() failed." );
 }
 
-void ArchHooks::MountInitialFilesystems( const RString &sDirOfExecutable )
+void ArchHooks::MountInitialFilesystems( const RString &sDirOfData )
 {
 	char dir[PATH_MAX];
 	CFURLRef dataUrl = CFBundleCopyResourceURL( CFBundleGetMainBundle(), CFSTR("StepMania"), CFSTR("smzip"), NULL );
 
-	FILEMAN->Mount( "dir", sDirOfExecutable, "/" );
+	FILEMAN->Mount( "dir", sDirOfData, "/" );
 
 	if( dataUrl )
 	{
 		CFStringRef dataPath = CFURLCopyFileSystemPath( dataUrl, kCFURLPOSIXPathStyle );
 		CFStringGetCString( dataPath, dir, PATH_MAX, kCFStringEncodingUTF8 );
 
-		if( strncmp(sDirOfExecutable, dir, sDirOfExecutable.length()) == 0 )
-			FILEMAN->Mount( "zip", dir + sDirOfExecutable.length(), "/" );
+		if( strncmp(sDirOfData, dir, sDirOfData.length()) == 0 )
+			FILEMAN->Mount( "zip", dir + sDirOfData.length(), "/" );
 		CFRelease( dataPath );
 		CFRelease( dataUrl );
 	}
 }
 
-void ArchHooks::MountUserFilesystems( const RString &sDirOfExecutable )
+void ArchHooks::MountUserFilesystems( const RString &sDirOfData )
 {
 	char dir[PATH_MAX];
 
